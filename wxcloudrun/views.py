@@ -1,7 +1,7 @@
 from datetime import datetime
 from flask import render_template, request
 from run import app
-from wxcloudrun.dao import delete_counterbyid, query_counterbyid, insert_counter, update_counterbyid
+from wxcloudrun.dao import delete_counterbyid, query_counterbyid, insert_counter, update_counterbyid, gpt_35_api_stream
 from wxcloudrun.model import Counters
 from wxcloudrun.response import make_succ_empty_response, make_succ_response, make_err_response
 
@@ -64,3 +64,23 @@ def get_count():
     """
     counter = Counters.query.filter(Counters.id == 1).first()
     return make_succ_response(0) if counter is None else make_succ_response(counter.count)
+
+@app.route('/chat', methods=['POST'])
+def chat():
+    """
+    :return:计数结果/清除结果
+    """
+
+    # 获取请求体参数
+    params = request.get_json()
+    print(params)
+
+    # 检查action参数
+    if 'question' not in params:
+        return make_err_response('缺少question参数')
+
+    # 按照不同的action的值，进行不同的操作
+    question = params['question']
+    msg = [{'role': 'user','content':question}]
+    a,b,res = gpt_35_api_stream(msg)
+    return res['content']
