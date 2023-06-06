@@ -3,7 +3,7 @@ import openai
 from sqlalchemy.exc import OperationalError
 
 from wxcloudrun import db
-from wxcloudrun.model import Counters
+from wxcloudrun.model import Counters, Answer
 
 # 初始化日志
 logger = logging.getLogger('log')
@@ -21,6 +21,17 @@ def query_counterbyid(id):
         logger.info("query_counterbyid errorMsg= {} ".format(e))
         return None
 
+def query_answerbyid(id):
+    """
+    根据ID查询answer实体
+    :param id: answer的ID
+    :return: answer实体
+    """
+    try:
+        return Answer.query.filter(Answer.id == id).first()
+    except OperationalError as e:
+        logger.info("query_counterbyid errorMsg= {} ".format(e))
+        return None
 
 def delete_counterbyid(id):
     """
@@ -49,6 +60,19 @@ def insert_counter(counter):
         logger.info("insert_counter errorMsg= {} ".format(e))
 
 
+def insert_answer(answer):
+    """
+    answer
+    :param answer: answer
+    """
+    try:
+        db.session.add(answer)
+        db.session.commit()
+        return answer.id
+    except OperationalError as e:
+        logger.info("insert_answer errorMsg= {} ".format(e))
+
+
 def update_counterbyid(counter):
     """
     根据ID更新counter的值
@@ -64,6 +88,19 @@ def update_counterbyid(counter):
         logger.info("update_counterbyid errorMsg= {} ".format(e))
 
 
+def update_answerbyid(answer):
+    """
+    根据ID更新counter的值
+    :param counter实体
+    """
+    try:
+        answer = query_answerbyid(answer.id)
+        if answer is None:
+            return
+        db.session.flush()
+        db.session.commit()
+    except OperationalError as e:
+        logger.info("update_answerbyid errorMsg= {} ".format(e))
 
 
 
@@ -72,7 +109,7 @@ def update_counterbyid(counter):
 # completion = openai.ChatCompletion.create(model="gpt-3.5-turbo", messages=[{"role": "user", "content": "Hello world!"}])
 # print(completion.choices[0].message.content)
 
-def gpt_35_api_stream(messages: list):
+def gpt_35_api_stream(messages: list, id: int):
     """为提供的对话消息创建新的回答 (流式传输)
 
     Args:
@@ -100,6 +137,10 @@ def gpt_35_api_stream(messages: list):
                 # print(f'流响应数据: {delta_k} = {delta_v}')
                 completion[delta_k] += delta_v
         messages.append(completion)  # 直接在传入参数 messages 中追加消息
+        answer_model = query_answerbyid(id)
+        answer_model.status = 0
+        answer_model.answer = completion
+        update_answerbyid(answer_model)
         return (True, '', completion)
     except Exception as err:
         return (False, f'OpenAI API 异常: {err}')

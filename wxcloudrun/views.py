@@ -1,10 +1,11 @@
 from datetime import datetime
 from flask import render_template, request
 from run import app
-from wxcloudrun.dao import delete_counterbyid, query_counterbyid, insert_counter, update_counterbyid, gpt_35_api_stream
-from wxcloudrun.model import Counters
+from wxcloudrun.dao import delete_counterbyid, query_counterbyid, insert_counter, update_counterbyid, gpt_35_api_stream, insert_answer, query_answerbyid
+from wxcloudrun.model import Counters, Answer
 from wxcloudrun.response import make_succ_empty_response, make_succ_response, make_err_response
 
+import threading
 
 @app.route('/')
 def index():
@@ -65,7 +66,7 @@ def get_count():
     counter = Counters.query.filter(Counters.id == 1).first()
     return make_succ_response(0) if counter is None else make_succ_response(counter.count)
 
-@app.route('/chat', methods=['POST'])
+@app.route('/chat/start_task', methods=['POST'])
 def chat():
     """
     :return:计数结果/清除结果
@@ -79,8 +80,39 @@ def chat():
     if 'question' not in params:
         return make_err_response('缺少question参数')
 
-    # 按照不同的action的值，进行不同的操作
+    ans = Answer()
+    ans.created_at = datetime.now()
+    ans.status = 1
+    id = insert_answer(ans)
+
     question = params['question']
     msg = [{'role': 'user','content':question}]
-    a,b,res = gpt_35_api_stream(msg)
-    return res['content']
+    thread1 = threading.Thread(target=gpt_35_api_stream, args=(msg, id))
+    thread1.start()
+    return id
+
+
+@app.route('/chat/get_id_status', methods=['GET'])
+def chat_get_id_status():
+    """
+    :return:计数结果/清除结果
+    """
+
+    # 获取请求体参数
+    id = request.args.get('id')
+    answer = query_answerbyid(id)
+    status = answer.status
+    return status
+    
+
+@app.route('/chat/get_id_response', methods=['get'])
+def chat_get_id_response():
+    """
+    :return:计数结果/清除结果
+    """
+
+    # 获取请求体参数
+    id = request.args.get('id')
+    answer_model = query_answerbyid(id)
+    ans = answer_model.answer
+    return ans
