@@ -1,5 +1,7 @@
 import logging
 import openai
+import sys
+import time
 from sqlalchemy.exc import OperationalError
 
 from wxcloudrun import db
@@ -21,14 +23,17 @@ def query_counterbyid(id):
         logger.info("query_counterbyid errorMsg= {} ".format(e))
         return None
 
-def query_answerbyid(id):
+def query_answerbyid(id: int):
     """
     根据ID查询answer实体
     :param id: answer的ID
     :return: answer实体
     """
     try:
-        return Answer.query.filter(Answer.id == id).first()
+        print("id=" + str(id),file=sys.stderr)
+        ans = Answer.query.filter(id==Answer.id).first()
+        print(str(ans),file=sys.stderr)
+        return ans
     except OperationalError as e:
         logger.info("query_counterbyid errorMsg= {} ".format(e))
         return None
@@ -88,23 +93,6 @@ def update_counterbyid(counter):
         logger.info("update_counterbyid errorMsg= {} ".format(e))
 
 
-def update_answerbyid(answer):
-    """
-    根据ID更新counter的值
-    :param counter实体
-    """
-    try:
-        answer = query_answerbyid(answer.id)
-        if answer is None:
-            return
-        db.session.flush()
-        db.session.commit()
-    except OperationalError as e:
-        logger.info("update_answerbyid errorMsg= {} ".format(e))
-
-
-
-
 # 非流式响应
 # completion = openai.ChatCompletion.create(model="gpt-3.5-turbo", messages=[{"role": "user", "content": "Hello world!"}])
 # print(completion.choices[0].message.content)
@@ -137,10 +125,12 @@ def gpt_35_api_stream(messages: list, id: int):
                 # print(f'流响应数据: {delta_k} = {delta_v}')
                 completion[delta_k] += delta_v
         messages.append(completion)  # 直接在传入参数 messages 中追加消息
-        answer_model = query_answerbyid(id)
-        answer_model.status = 0
-        answer_model.answer = completion
-        update_answerbyid(answer_model)
+
+        ans = Answer.query.get(id)
+        ans.status = 0
+        ans.answer = completion["content"]
+        db.session.flush()
+        db.session.commit()
         return (True, '', completion)
     except Exception as err:
         return (False, f'OpenAI API 异常: {err}')

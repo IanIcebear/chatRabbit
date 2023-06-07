@@ -24,5 +24,5 @@ class Answer(db.Model):
     # 请求状态，status=0是成功，1是等待中
     status = db.Column(db.Integer, default=1)
     created_at = db.Column('createdAt', db.TIMESTAMP, nullable=False, default=datetime.now())
-    answer =  db.Column(db.String(4096))
+    answer =  db.Column(db.String)
 

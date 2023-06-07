@@ -4,9 +4,12 @@ from run import app
 from wxcloudrun.dao import delete_counterbyid, query_counterbyid, insert_counter, update_counterbyid, gpt_35_api_stream, insert_answer, query_answerbyid
 from wxcloudrun.model import Counters, Answer
 from wxcloudrun.response import make_succ_empty_response, make_succ_response, make_err_response
-
+import logging
 import threading
+import sys
 
+# 初始化日志
+logger = logging.getLogger('log')
 @app.route('/')
 def index():
     """
@@ -72,24 +75,25 @@ def chat():
     :return:计数结果/清除结果
     """
 
-    # 获取请求体参数
-    params = request.get_json()
-    print(params)
 
-    # 检查action参数
+    params = request.get_json()
+    # 检查参数
     if 'question' not in params:
         return make_err_response('缺少question参数')
+    
+    print("=========================", file=sys.stderr)
 
     ans = Answer()
     ans.created_at = datetime.now()
     ans.status = 1
+    ans.answer = "请稍等，兔兔正在努力思考中..."
     id = insert_answer(ans)
-
     question = params['question']
     msg = [{'role': 'user','content':question}]
     thread1 = threading.Thread(target=gpt_35_api_stream, args=(msg, id))
     thread1.start()
-    return id
+    # gpt_35_api_stream(msg, id)
+    return make_succ_response(id)
 
 
 @app.route('/chat/get_id_status', methods=['GET'])
@@ -100,9 +104,9 @@ def chat_get_id_status():
 
     # 获取请求体参数
     id = request.args.get('id')
-    answer = query_answerbyid(id)
+    answer = query_answerbyid(int(id))
     status = answer.status
-    return status
+    return make_succ_response(id)
     
 
 @app.route('/chat/get_id_response', methods=['get'])
@@ -113,6 +117,6 @@ def chat_get_id_response():
 
     # 获取请求体参数
     id = request.args.get('id')
-    answer_model = query_answerbyid(id)
+    answer_model = query_answerbyid(int(id))
     ans = answer_model.answer
-    return ans
+    return make_succ_response(ans)
