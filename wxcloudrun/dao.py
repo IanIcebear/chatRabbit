@@ -126,7 +126,8 @@ def gpt_35_api_stream(messages: list, id: int):
                 completion[delta_k] += delta_v
         messages.append(completion)  # 直接在传入参数 messages 中追加消息
 
-        ans = Answer.query.get(id)
+#         ans = Answer.query.get(id)
+        ans = Answer.query.filter(Answer.id == id).first()
         ans.status = 0
         ans.answer = completion["content"]
         db.session.flush()
