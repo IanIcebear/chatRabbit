@@ -90,6 +90,7 @@ def chat():
     id = insert_answer(ans)
     print("======ans===================" + str(ans), file=sys.stderr)
     print("======ans.answer===================" + str(ans.answer), file=sys.stderr)
+    print("======ans.id===================" + str(ans.id), file=sys.stderr)
     question = params['question']
     msg = [{'role': 'user','content':question}]
     thread1 = threading.Thread(target=gpt_35_api_stream, args=(msg, id))
