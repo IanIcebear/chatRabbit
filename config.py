@@ -1,6 +1,6 @@
 import os
 
-# 是否开启debug模式
+# 是否开启debug模式  
 DEBUG = True
 
 # #读取数据库环境变量
