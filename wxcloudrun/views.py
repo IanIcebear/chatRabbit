@@ -88,9 +88,6 @@ def chat():
     ans.status = 1
     ans.answer = "请稍等，兔兔正在努力思考中..."
     id = insert_answer(ans)
-    print("======ans===================" + str(ans), file=sys.stderr)
-    print("======ans.answer===================" + str(ans.answer), file=sys.stderr)
-    print("======ans.id===================" + str(ans.id), file=sys.stderr)
     question = params['question']
     msg = [{'role': 'user','content':question}]
     thread1 = threading.Thread(target=gpt_35_api_stream, args=(msg, id))
@@ -109,7 +106,7 @@ def chat_get_id_status():
     id = request.args.get('id')
     answer = query_answerbyid(int(id))
     status = answer.status
-    return make_succ_response(id)
+    return make_succ_response(status)
     
 
 @app.route('/chat/get_id_response', methods=['get'])
